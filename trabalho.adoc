@@ -1,0 +1,829 @@
+=== Trabalho de processamento digital de imagens
+
+Este site tem como objetivo a exposição dos resultados dos exercícios propostos na aula de processamento digital de sinais, do Professor agostinho Britto, da UFRN
+
+
+====== Exercício  negativo:
+O primeiro exercício tem como objetivo o projeto de um programa que receba uma imagem,dois pontos x,y, e que invertas cores(crie um negativo) da área entre as coordenadas.Este processo pode ser facilmente realizado utilizando o a função vector3b<>, basta fazer o programa varrer cada pixel entre as coordenadas e utilizar o vetor 3b da seguinte forma:
+
+[source,c++]
+-----------------
+#include <vector>
+#include <stdio.h>
+#include <opencv2/opencv.hpp>
+
+using namespace cv;
+using namespace std;
+
+
+int main(){
+
+Mat image;
+Vec3b val;
+int x1,x2,y1,y2;
+
+
+
+
+image = imread("daft.png",CV_LOAD_IMAGE_GRAYSCALE);
+
+
+
+namedWindow("janela",WINDOW_AUTOSIZE);	// Nomeando e identificando janelas
+
+    cout << "por favor digite as primeiras cordenadas" << endl;
+    cin >> x1 >> y1;
+    cout << endl;
+    cout << "por favor digite as segundas coordenadas" << endl;
+    cin >> x2 >> y2;
+    cout << endl;
+
+  for(int i=x1;i<x2;i++){
+    for(int j=y1;j<y2;j++){
+      image.at<uchar>(i,j)=255-image.at<uchar>(i,j);			
+    }
+  }
+
+  imshow("janela", image);  			// Abrindo janela para imagem
+  imwrite("regions.png", image);
+  waitKey();
+  return 0;
+}
+
+
+-----------------
+O código funcionou perfeitamente, a imagem inserida retornou como:
+
+image::Desktop\regions.png[]
+
+
+
+
+
+====== Exercício regiões
+
+O segundo problema pedia que criassemos um programa que recebesse uma imagem pré selecionada e invertesse suas regiões, isso pode ser feito usando a função copyTo da biblioteca OpenCV,foi preciso simplesmente mapear os quadrantes através da altura e largura daa imagem, e logo depois copiar os quadrantes e colar.A 
+imagem é:
+
+[source,c++]
+-----------------
+#include <vector>
+#include <stdio.h>
+#include <opencv2/opencv.hpp>
+
+using namespace cv;
+using namespace std;
+
+
+int main(){
+
+Mat image;
+Mat imageTR;
+Mat q1,q2,q3,q4;
+
+
+
+
+
+image =imread("daft.png",CV_LOAD_IMAGE_GRAYSCALE);
+
+
+    int larg = image.size().width;
+	 int alt= image.size().height;
+
+
+    q1 = image( Rect( 0 ,  0 , larg/2, alt/2 )).clone();
+	q2 = image( Rect(larg/2,  0 , larg/2, alt/2 )).clone();
+	q3 = image( Rect( 0 , alt/2, larg/2, alt/2 )).clone();
+	q4 = image( Rect(larg/2, alt/2, larg/2 ,alt/2 )).clone();
+
+
+    image.copyTo(imageTR);
+	q1.copyTo(imageTR(Rect(larg/2, alt/2, larg/2 , alt/2 )));
+	q2.copyTo(imageTR(Rect( 0 , alt/2, larg/2 , alt/2 )));
+	q3.copyTo(imageTR(Rect(larg/2,  0 , larg/2 , alt/2 )));
+	q4.copyTo(imageTR(Rect( 0 ,  0 , larg/2 , alt/2 )));
+
+
+	namedWindow("imageTR", WINDOW_AUTOSIZE);
+	imshow("imageTR",imageTR);
+
+
+	waitKey();
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+-----------------
+O resultado:
+
+image::Desktop\imagem invertida.png[]
+
+
+
+
+
+
+
+===== Exercício bolhas
+
+O terceiro exercício foi mais complexo, basicamente, ele propunha que criassemos um código que pudesse ler, contar o número de objetos, e o número de objetos com bolhas:para começar,usamos a função floodfill na lateral da imagem para excluir os objetos duvidosos que poderiam ser ambíguos ao programa.
+
+Logo após, usamos um truque:ao fazer o programa varrer pixel por pixel, a cada buraco objeto encontrado, usamos a função floodfill, para cada objeto encontrado, nós passamos o flood fill e incrementamos um contador nob,de forma a usar o as caracteristicas da função em nosso favor:
+
+o código ficou dessa forma:
+
+[source,c++]
+-----------------
+#include <vector>
+#include <stdio.h>
+#include <opencv2/opencv.hpp>
+
+using namespace cv;
+using namespace std;
+
+
+
+
+using namespace cv;
+using namespace std;
+
+int main(){
+	Mat image, ImagemLimpa;
+	int larg, alt;
+	int nob, nobM, noobjectsB, nobSemBuracos, noburacos;
+
+	CvPoint p;
+	image = imread("bolha.png",CV_LOAD_IMAGE_GRAYSCALE);
+
+
+	larg = image.size().width; // funções para conseguir a altura e largura da imagem
+	alt = image.size().height;
+
+	p.x = 0;
+	p.y = 0; // iniciando no pixel 0;
+
+
+
+
+	image.copyTo(ImagemLimpa); // esta função remove as bolhas incompreensíveis para o programa, utiliza o flood fill e o ponto CV,para varrer cada coluna e cada linha da borda
+
+	for (int i = 0; i<alt; i++ ){
+		if (image.at<uchar>(i,0) == 255 ){
+			p.x = 0;
+			p.y = i;
+			floodFill(ImagemLimpa,p,0);
+		}else if(image.at<uchar>(i,larg-1) == 255 ){
+			p.x = larg-1;
+			p.y = i;
+			floodFill(ImagemLimpa,p,0);  // para cada pixel branco encontrado nas colunas, utiliza o floodfill para pintar de preto
+		}
+	}
+	for (int j = 0; j<larg; j++ ){
+		if (image.at<uchar>(0,j) == 255 ){
+			p.x = j;
+			p.y = 0;
+			floodFill(ImagemLimpa,p,0);
+		}else if(image.at<uchar>(alt-1,j) == 255 ){
+			p.x = j;
+			p.y = alt-1;
+			floodFill(ImagemLimpa,p,0); //mesma ideia,só que com linhas
+		}
+	}
+	imshow("ImagemLimpa",ImagemLimpa);
+	imwrite("imagem limpa sem bolhas.png", ImagemLimpa);
+
+
+
+	nob=0;
+	nobM=0;
+	for(int i=0; i<alt; i++){
+		for(int j=0; j<larg; j++){
+			if(ImagemLimpa.at<uchar>(i,j) == 255){   //com  imagem sem as bolhas nas bordas, hora de começar a contar os objetos, para fazer isso, faz o programa  varrer a image
+
+				nob++;
+				p.x = j;
+				p.y = i;
+				floodFill(ImagemLimpa,p,nob);   // Para cada pixel branco encontrado, o contador é incrementado,e então usamos o floodfill para pintar todos de cinza
+
+				if(nob == 255){
+					nobM = nobM + nob;
+					nob = 0;
+
+				}
+				floodFill(ImagemLimpa,p,50);
+			}
+		}
+	}
+	nob =  nob + nobM;
+	imshow("sem bolhas borda rotulada",ImagemLimpa);
+	imwrite("sem bolhas borda rotulada.png",ImagemLimpa);
+
+
+
+
+	noburacos = 0;
+
+	noobjectsB = 0;
+
+
+	p.x = 0;
+
+
+	p.y = 0;
+	floodFill(ImagemLimpa,p,128);
+
+
+	for(int i = 0; i< alt; i++){
+		for(int j = 0; j<larg; j++){
+			if(ImagemLimpa.at<uchar>(i,j) == 0){
+				noburacos++;
+				noobjectsB++;
+				p.x = j;
+				p.y = i;
+				floodFill(ImagemLimpa,p,noburacos);
+			}
+		}
+	}
+	imshow("buracos rotulados",ImagemLimpa);
+	imwrite("buracos rotulados.png",ImagemLimpa);
+
+	nobSemBuracos =  nob - noobjectsB;
+
+	cout << "Numero de objetos fora da borda: " << nob << endl;
+	cout << "Numero de objetos sem buracos: " << nobSemBuracos << endl;
+	cout << "Numero de objetos com buracos: " << noobjectsB << endl;
+	cout << "Numero de buracos: " << noburacos << endl;
+
+
+	waitKey();
+	return 0;
+
+}
+
+-----------------
+
+Os resultados foram:o contador contou corretamente todas as bolhas e o resultado das funções floodfill:
+
+image::Desktop\bolhas.png[]
+
+
+image::Desktop\sembolhasborda.png[]
+image::Desktop\BRot.png[]
+
+image::Desktop\buracosrotulados.png[]
+
+
+===== Exercício  histograma:
+
+O exercício 5 pedia que criassemos um programa que calculasse e equalizasse histogramas:
+por motivos de conveniência o programa foi feito usando escalas de cinza para facilitar:
+
+O programa utiliza funções padrões do openCV, ao abrir a imagem em tons de cinza, e enquanto a imagem é trasmitida utilizamos a função calcHistogram para calcular, equalize pra equalizar e então criamos uma imagem através da função line para mostrar.
+
+o código
+[source,c++]
+-----------------
+
+#include <vector>
+#include <stdio.h>
+#include <opencv2/opencv.hpp>
+#include "opencv2/highgui/highgui.hpp"
+#include <iostream>
+
+
+
+using namespace std;
+using namespace cv;
+void detecta(Mat nova, Mat velha, int diferenca){
+  for(int i=0;i<velha.rows;i++){
+    for(int j=0;j<velha.cols;j++){
+      if(abs(nova.at<uchar>(i,j) - velha.at<uchar>(i,j) > diferenca)){
+        cout << "Movimento detectado no pixel (" << i << ", " << j << ")" << endl;
+
+      }
+    }
+  }
+}
+int main()
+{  Mat image,imggrayscale, imgequalize;
+
+  int width, height;
+
+
+  vector<Mat> planes;
+  Mat hist, histnew;
+  int nbins = 256;// número de "bins" no histograma, ou o número de colunas
+  float range[] = {0, 256};
+  const float *histrange = { range };
+  bool uniform = true;
+  bool acummulate = false;
+    VideoCapture cap(0);
+    if(!cap.isOpened()){
+        cerr << "nenhuma câmera detectada" << endl;
+        return -1;
+    }
+
+    while(true){
+        cap >> image;
+        if(image.empty()){
+            cerr << "frame inválido" << endl;
+            continue;
+        }
+
+
+        imshow("normal",image);
+        waitKey(5);
+
+
+        width  = cap.get(CV_CAP_PROP_FRAME_WIDTH);// função padrão do openCV,declara que a altura é a altura captada pela função durante o processo
+  height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+
+  cout << "largura = " << width << endl;
+  cout << "altura  = " << height << endl;
+
+  int histw = nbins, histh = nbins/2;
+  Mat histImg(histh, histw, CV_8UC1, Scalar(0,0,0));
+
+  Mat histImgNova(histh, histw, CV_8UC1, Scalar(0,0,0));
+
+
+  while(1){
+
+
+
+    cvtColor(image, imggrayscale, CV_BGR2GRAY);
+    equalizeHist(imggrayscale,imgequalize);
+
+    calcHist(&imggrayscale, 1, 0, Mat(), hist, 1,
+             &nbins, &histrange,
+             uniform, acummulate);
+
+    calcHist(&imgequalize, 1, 0, Mat(), histnew, 1,
+             &nbins, &histrange,
+             uniform, acummulate);
+
+    normalize(hist, hist, 0, histImg.rows, NORM_MINMAX, -1, Mat());
+    normalize(histnew, histnew, 0, histImgNova.rows, NORM_MINMAX, -1, Mat());
+
+    histImg.setTo(Scalar(0));
+    histImgNova.setTo(Scalar(0));
+
+    for(int i=0; i<nbins; i++){
+      line(histImg,
+           Point(i, histh),
+           Point(i, histh-cvRound(hist.at<float>(i))),
+           Scalar(120, 120, 255), 1, 8, 0);
+      line(histImgNova,
+           Point(i, histh),
+           Point(i, histh-cvRound(histnew.at<float>(i))),
+           Scalar(120, 255, 255), 1, 8, 0);
+    }
+    histImg.copyTo(imgequalize(Rect(0, 0       ,nbins, histh)));
+    histImgNova.copyTo(imggrayscale(Rect(0, 0       ,nbins, histh)));
+
+
+
+    imshow("normal em cinza", imggrayscale);
+
+    imshow("equalizada", imgequalize);
+
+    if(waitKey(30) >= 0) break;
+
+  }
+   }
+
+  return 0;
+
+}
+
+
+
+-----------------
+O resultado pode ser visto :
+
+image::Desktop\histograma.png[]
+
+
+====== exercício detecção
+
+Este exercício utiliza o principio do histograma para criar um detector de movimentos.Basta usar fazer um código que calcule histogramas de frames diferentes, e usar uma função para compara-los
+
+o código
+
+[source,c++]
+-----------------
+
+#include <vector>
+#include <stdio.h>
+#include <opencv2/opencv.hpp>
+#include "opencv2/highgui/highgui.hpp"
+#include <iostream>
+
+
+
+
+using namespace cv;
+using namespace std;
+
+int main( ){
+	Mat image;
+	int width, height;
+
+	vector<Mat> planes;
+	int nbins = 64;
+	float range[] = {0,256};
+	const float *histange = { range };
+	bool uniform = true, acummulate = false;
+	double compare;
+
+	Mat hist, histA;
+
+	 VideoCapture cap(0);
+    if(!cap.isOpened()){
+        cerr << "nenhuma câmera detectada" << endl;
+        return -1;
+    }
+
+    while(true){
+        cap >> image;
+        if(image.empty()){
+            cerr << "frame inválido" << endl;
+            continue;
+        }
+
+  	}
+
+  	width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+  	height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+
+  	cout << "Largura = " << width << endl;
+  	cout << "Altura = " << height << endl;
+
+  	while(1){
+
+  	 VideoCapture cap(0);
+    if(!cap.isOpened()){
+        cerr << "nenhuma câmera detectada" << endl;
+        return -1;
+    }
+
+    while(true){
+        cap >> image;
+        if(image.empty()){
+            cerr << "frame inválido" << endl;
+            continue;
+        }
+
+  	}
+
+
+
+
+  		cap >> image;
+   		split (image,planes);
+
+  		calcHist(&planes[0], 1, 0, Mat(), hist, 1, &nbins, &histange, uniform, acummulate);
+    	normalize(hist, hist, 0, 1, NORM_MINMAX, -1, Mat());
+
+    	if(!histA.data){ hist.copyTo(histA); continue;}
+
+    	compare = compareHist(hist, histA, CV_COMP_CORREL);
+
+
+    	if (compare < 0.99){
+
+    		hist.copyTo(histA);
+    		  putText(image, "movimento detectado !", Point(width/2 - 200, height/2), FONT_HERSHEY_SIMPLEX, 1, Scalar(0,0,255), 2);
+    	}
+
+    	imshow("image", image);
+
+    	if(waitKey(3000) >= 0) break;
+
+	}
+	return 0;
+}
+
+
+
+-----------------
+
+
+E o resultado:
+
+image::Desktop\frame.png[]
+
+
+
+===== exercício Filtro:
+
+O exercício do filtro pedia para criar um programa que passasse um filtro gaussiano na imagem, como já nas instruções já havia a base do programa pronta, só foi preciso fazer as multiplicações e mostrar os resultados
+
+o código
+[source,c++]
+-----------------
+#include <iostream>
+#include <opencv2/opencv.hpp>
+
+using namespace cv;
+using namespace std;
+
+void printmask(Mat &m) {
+        for (int i = 0; i<m.size().height; i++) {
+                for (int j = 0; j<m.size().width; j++) {
+                        cout << m.at<float>(i, j) << ",";
+                }
+                cout << endl;
+        }
+}
+
+void menu() {
+        cout << "\npressione a tecla para ativar o filtro: \n"
+                "a - calcular modulo\n"
+                "m - media\n"
+                "g - gauss\n"
+                "v - vertical\n"
+                "h - horizontal\n"
+                "l - laplaciano\n"
+                "p - Laplaciano do Gaussiano\n"
+                "esc - sair\n";
+}
+
+int main(int argvc, char** argv) {
+        VideoCapture video;
+        float media[] = { 1,1,1,
+                1,1,1,
+                1,1,1 };
+        float media5[] = { 1,1,1,1,1,
+                1,1,1,1,1,
+                1,1,1,1,1,
+                1,1,1,1,1,
+                1,1,1,1,1 };
+
+        float gauss[] = { 1,2,1,
+                2,4,2,
+                1,2,1 };
+        float horizontal[] = { -1,0,1,
+                -2,0,2,
+                -1,0,1 };
+        float vertical[] = { -1,-2,-1,
+                0,0,0,
+                1,2,1 };
+        float laplacian[] = { 0,-1,0,
+                -1,4,-1,
+                0,-1,0 };
+
+        Mat cap, frame, frame32f, frameFiltered;
+        Mat mask(3, 3, CV_32F), mask1;
+        Mat result, result1;
+        double width, height, min, max;
+        int absolut,lg=0;
+        char key;
+
+        video.open(0);
+        if (!video.isOpened())
+                return -1;
+
+
+
+
+
+        width = video.get(CV_CAP_PROP_FRAME_WIDTH);
+        height = video.get(CV_CAP_PROP_FRAME_HEIGHT);
+        cout << "largura=" << width << "\n";;
+       cout << "altura =" << height << "\n";;
+
+        namedWindow("filtro espacial", 1);
+
+        mask = Mat(3, 3, CV_32F, media);
+        scaleAdd(mask, 1 / 9.0, Mat::zeros(3, 3, CV_32F), mask1);
+        swap(mask, mask1);
+        absolut = 1;
+
+        menu();
+        for (;;) {
+
+                video >> cap;
+                cvtColor(cap, frame, CV_BGR2GRAY);
+                flip(frame, frame, 1);
+                imshow("original", frame);
+                frame.convertTo(frame32f, CV_32F);
+                filter2D(frame32f, frameFiltered, frame32f.depth(), mask, Point(1, 1), 0);
+
+                if (lg == 1) {
+                        mask = Mat(3, 3, CV_32F, laplacian);
+                        filter2D(frameFiltered, frameFiltered, frame32f.depth(), mask, Point(1, 1), 0);
+                }
+                if (absolut) {
+                        frameFiltered = abs(frameFiltered);
+                }
+
+                frameFiltered.convertTo(result, CV_8U);
+                imshow("filtro espacial", result);
+                key = (char)waitKey(10);
+                if (key == 27) break;
+                switch (key) {
+                case 'a':
+                        menu();
+                        absolut = !absolut;
+                        break;
+                case 'm':
+                        menu();
+                        mask = Mat(3, 3, CV_32F, media);
+                        scaleAdd(mask, 1 / 9.0, Mat::zeros(3, 3, CV_32F), mask1);
+                        mask = mask1;
+                        printmask(mask);
+                        break;
+                case 'g':
+                        menu();
+                        mask = Mat(3, 3, CV_32F, gauss);
+                        scaleAdd(mask, 1 / 16.0, Mat::zeros(3, 3, CV_32F), mask1);
+                        mask = mask1;
+                        lg = 0;
+                        printmask(mask);
+                        break;
+                case 'h':
+                        menu();
+                        mask = Mat(3, 3, CV_32F, horizontal);
+                        printmask(mask);
+                        break;
+                case 'v':
+                        menu();
+                        mask = Mat(3, 3, CV_32F, vertical);
+                        printmask(mask);
+                        break;
+                case 'l':
+                        menu();
+                        mask = Mat(3, 3, CV_32F, laplacian);
+                        printmask(mask);
+                        lg = 0;
+                        break;
+                case 'p':
+                        menu();
+                        mask = Mat(3, 3, CV_32F, gauss);
+                        scaleAdd(mask, 1 / 16.0, Mat::zeros(3, 3, CV_32F), mask1);
+                        mask = mask1;
+                        lg = 1;
+                        printmask(mask);
+                        break;
+                default:
+                        break;
+                }
+        }
+        return 0;
+}
+
+
+
+-----------------
+ 
+ 
+
+O resultado:
+
+image::Desktop\filtro.png[]
+
+===== exercício tillshift
+
+Este problema foi mais difícil, porém com funções padrão da biblioteca opencv foi possível faze-lo de forma satisfatória, isso graças também ao programa ter uma base nas isntruções
+
+
+o código
+[source,c++]
+-----------------
+#include <iostream>
+#include <opencv2/opencv.hpp>
+#include <vector>
+#include <stdio.h>
+#include <opencv2/opencv.hpp>
+using namespace cv;
+using namespace std;
+
+double alfa,beta;
+
+int desfoque_slider_max = 200;
+
+int top_slider = 0;
+int top_slider_max = 100;
+
+Mat image1, image2, blended;
+Mat imageTop, imageBlur;
+
+char TrackbarName[50];
+
+
+int altura_focada=20, Y_max, X_max, inicio=0, desfoque=10;
+Mat frame32f, frameFiltered;
+int n1, n2, limite, d;
+
+void on_trackbar_blend(int, void*) {
+
+        blended = image1.clone();
+        n1 = inicio;
+        n2 = inicio + limite;
+        d = (desfoque / 20)*100;
+
+        for (int i = 0; i<blended.rows; i++) {
+                alfa= 0.5*(tanh((i-n1)/(d+ 1)) - tanh((i-n2)/(d+ 1)));
+                beta = 1 - alfa;
+                addWeighted(imageTop.row(i), alfa, imageBlur.row(i), beta, 0.0, blended.row(i));
+        }
+        imshow("addweighted", blended);
+}
+
+
+void on_trackbar_altura(int, void*) {
+        imageBlur.copyTo(imageTop);
+        limite = altura_focada *Y_max / 100;
+
+        if (inicio >= Y_max - limite) {
+                inicio = Y_max - limite - 1;
+                cout << "não pode ir além. \n";
+        }
+        if (limite > 0) {
+                Mat tmp = image2(Rect(0, inicio, X_max, limite));
+                tmp.copyTo(imageTop(Rect(0, inicio, X_max, limite)));
+
+        }
+        on_trackbar_blend(desfoque, 0);
+}
+
+void on_trackbar_desfoque(int, void*) {
+
+        image1.convertTo(frame32f, CV_32F);
+
+        for (int i = 1; i < desfoque; i = i + 2){
+                blur(image1, imageBlur, Size(i, i), Point(-1, -1));
+        }
+
+        on_trackbar_altura(altura_focada, 0);
+}
+
+int main(int argvc, char** argv) {
+        image1 = imread("bavaria.jpeg");
+        image2 = imread("bavaria.jpeg");
+        image2.copyTo(imageTop);
+        image1.copyTo(imageBlur);
+        namedWindow("addweighted", 1);
+
+
+        X_max = image1.size().width;
+        Y_max = image2.size().height;
+
+        on_trackbar_desfoque(desfoque, 0);
+        on_trackbar_blend(desfoque, 0);
+
+
+        sprintf(TrackbarName, "Altura x %d", Y_max);
+        createTrackbar(TrackbarName, "addweighted",
+                &altura_focada,
+                100,
+                on_trackbar_altura);
+        on_trackbar_altura(altura_focada, 0);
+
+
+        sprintf(TrackbarName, "Deslocamento x %d", Y_max);
+        createTrackbar(TrackbarName, "addweighted",
+                &inicio,
+                Y_max,
+                on_trackbar_altura);
+
+        sprintf(TrackbarName, "Desfoque x %d", desfoque_slider_max);
+        createTrackbar(TrackbarName, "addweighted",
+                &desfoque,
+                desfoque_slider_max,
+                on_trackbar_desfoque);
+
+        waitKey(0);
+        return 0;
+}
+
+
+-----------------
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+O resultado: 
+
+image::Desktop\TS.png[]
+ 
+ 
+ 
+ 
+ 
